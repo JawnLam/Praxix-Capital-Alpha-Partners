@@ -1,505 +1,702 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analysis of California's 6-Bed RCFE Industry</title>
+    <title>California RCFE Market: Interactive Investment Analysis</title>
+    <!-- Chosen Palette: Calm Neutrals -->
+    <!-- Application Structure Plan: A thematic, dashboard-style SPA. The structure starts with the core investment thesis, then allows non-linear exploration of key themes: The Opportunity (Market Size, Demographics), Market Dynamics (interactive Porter's Five Forces), a new SWOT Analysis section (interactive tabs for US vs. CA), Value Creation (the 'PE playbook' with a focus on multiple expansion), Risks & Mitigation (interactive tabs), and Exit Strategy (M&A data). This is more intuitive for an investment committee than a linear report, focusing on the 'so what' of each data point and guiding the user through the strategic narrative. The new SWOT section is placed after Market Dynamics to provide a high-level strategic summary before diving into the more granular operational sections. -->
+    <!-- Visualization & Content Choices: The report's dense text is converted into interactive visuals. Key Data -> Inform -> Animated Counters/Donut Chart -> Hover. Porter's Forces -> Organize/Compare -> Interactive Diagram (HTML/JS) -> Click. SWOT Analysis -> Compare/Organize -> JS Tabs with 2x2 Grid Layouts -> Click. EBITDA Multiples -> Compare -> Bar Chart (Chart.js) -> Hover. Risks -> Compare -> JS Tabs -> Click. M&A Volume -> Inform -> Bar Chart (Chart.js) -> Animate. This structure turns static text into an engaging, explorable experience. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Chosen Palette: Calm Horizon -->
-    <!-- Application Structure Plan: The SPA is designed as a thematic, single-page dashboard rather than a linear report. The goal is to guide the user through a narrative arc: 1. The Core Tension (summary), 2. The Demand Driver (demographics), 3. The Market Reality (structure/competition), 4. The Operational Gauntlet (an interactive hub for licensing, costs, revenue, challenges), and 5. The Path Forward (opportunities/conclusion). This structure breaks down complex information into digestible, self-contained sections, using a sticky nav for easy exploration. The 'Operational Gauntlet' uses tabs to prevent overwhelming the user, allowing them to drill into the most complex topics (licensing, economics) at their own pace. This non-linear, thematic approach is chosen for superior usability and information synthesis compared to a simple scrollable document. -->
-    <!-- Visualization & Content Choices: 
-        - Report Info: CA senior population projections (Table 2) -> Goal: Show change/growth -> Viz: Line Chart -> Interaction: Hover for details -> Justification: Clearly illustrates the powerful demographic trend over time, which is the core demand driver. -> Library: Chart.js.
-        - Report Info: Market structure by facility size vs. resident count (Table 1) -> Goal: Compare proportions -> Viz: Two side-by-side Donut Charts -> Interaction: Hover for percentages -> Justification: Provides a stark, immediate visual contrast showing industry fragmentation (many small homes, few residents) vs. concentration (few large homes, many residents). -> Library: Chart.js.
-        - Report Info: RCFE revenue sources (Private Pay, SSI/SSP, ALW Tiers from Table 3) -> Goal: Compare values -> Viz: Bar Chart -> Interaction: Hover for exact dollar amounts -> Justification: Visually highlights the significant disparity in funding streams, which is central to the affordability crisis and profitability challenges. -> Library: Chart.js.
-        - Report Info: Licensing Process (Section IV) -> Goal: Organize steps -> Presentation: Styled HTML/CSS ordered list -> Interaction: Static visual flow -> Justification: Presents a complex process in a clear, sequential, and easy-to-follow visual format without using disallowed SVG/Mermaid for diagrams.
-        - Report Info: Challenges & Opportunities (Section VIII) -> Goal: Inform/Organize -> Presentation: HTML/CSS Grid with cards -> Interaction: Static content display -> Justification: Breaks up long text into scannable, visually appealing cards, improving readability.
-    -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
-
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #F8F7F4;
-            color: #4A4A4A;
+            background-color: #F8F5F2;
+            color: #333333;
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #E07A5F;
+            border-bottom-color: #E07A5F;
+        }
+        .stat-card {
+            background-color: #FFFFFF;
+            border: 1px solid #EAEAEA;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .btn-primary {
+            background-color: #E07A5F;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #d16b50;
         }
         .chart-container {
             position: relative;
             width: 100%;
-            max-width: 700px;
+            max-width: 500px;
             margin-left: auto;
             margin-right: auto;
-            height: 320px;
-            max-height: 400px;
+            height: 280px;
+            max-height: 350px;
         }
         @media (min-width: 768px) {
             .chart-container {
-                height: 400px;
+                height: 350px;
+                max-height: 400px;
             }
         }
-        .tab-button.active {
-            border-color: #5A8F7B;
-            background-color: #E8EFEA;
-            color: #3B5F52;
-            font-weight: 600;
+        .section-title {
+            font-weight: 800;
+            font-size: 2.25rem;
+            line-height: 2.5rem;
         }
-        .licensing-step {
-            position: relative;
-            padding-left: 2.5rem; 
-            padding-bottom: 2rem;
+        .section-subtitle {
+            font-size: 1.125rem;
+            line-height: 1.75rem;
+            color: #555555;
+            max-width: 48rem;
         }
-        .licensing-step:not(:last-child)::before {
-            content: '';
-            position: absolute;
-            left: 18px;
-            top: 1.5rem;
-            bottom: -0.5rem;
-            width: 2px;
-            background-color: #D1D5DB;
+        .force-button {
+            transition: all 0.3s ease;
+            border: 2px solid #ddd;
         }
-        .licensing-step-circle {
-            position: absolute;
-            left: 0;
-            top: 4px;
-            width: 2.25rem;
-            height: 2.25rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 9999px;
-            background-color: #5A8F7B;
-            color: #FFFFFF;
-            font-weight: 600;
-            border: 4px solid #F8F7F4;
+        .force-button.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(224, 122, 95, 0.5);
+            border-color: #E07A5F;
+        }
+        .tab.active {
+            border-color: #E07A5F;
+            background-color: #E07A5F;
+            color: white;
+        }
+        .swot-card {
+            background-color: white;
+            border-left: 4px solid;
         }
     </style>
 </head>
 <body class="antialiased">
 
-    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
-        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header & Navigation -->
+    <header id="header" class="sticky top-0 bg-white/80 backdrop-blur-md z-50 shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex-shrink-0">
-                    <a href="#hero" class="text-xl font-bold text-[#3B5F52]">RCFE Market Analysis</a>
+                    <h1 class="text-xl font-bold text-[#E07A5F]">RCFE Investment Analysis</h1>
                 </div>
-                <div class="hidden md:block">
+                <nav class="hidden md:block">
                     <div class="ml-10 flex items-baseline space-x-4">
-                        <a href="#demand" class="text-gray-600 hover:text-[#5A8F7B] px-3 py-2 rounded-md text-sm font-medium">Demand</a>
-                        <a href="#market" class="text-gray-600 hover:text-[#5A8F7B] px-3 py-2 rounded-md text-sm font-medium">Market</a>
-                        <a href="#operations" class="text-gray-600 hover:text-[#5A8F7B] px-3 py-2 rounded-md text-sm font-medium">Operations</a>
-                        <a href="#future" class="text-gray-600 hover:text-[#5A8F7B] px-3 py-2 rounded-md text-sm font-medium">Future</a>
+                        <a href="#opportunity" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Opportunity</a>
+                        <a href="#market-dynamics" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Dynamics</a>
+                        <a href="#swot-analysis" class="nav-link px-3 py-2 rounded-md text-sm font-medium">SWOT</a>
+                        <a href="#value-creation" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Value Creation</a>
+                        <a href="#risks" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Risks</a>
+                        <a href="#exit-strategy" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Exit Options</a>
                     </div>
-                </div>
+                </nav>
             </div>
-        </nav>
+        </div>
     </header>
 
     <main>
-        <section id="hero" class="bg-white py-20 sm:py-24">
-            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                <p class="text-base font-semibold leading-7 text-[#C87941]">An Interactive Industry Analysis</p>
-                <h1 class="mt-2 text-4xl font-bold tracking-tight text-[#3B5F52] sm:text-6xl">The 6-Bed RCFE in California</h1>
-                <p class="mt-6 text-lg leading-8 text-gray-600 max-w-3xl mx-auto">California's market for small, 6-bed Residential Care Facilities for the Elderly (RCFEs) is defined by a powerful paradox: unprecedented demand from a rapidly aging population clashes with immense operational and financial headwinds. This analysis explores the growth potential and the critical challenges shaping this vital sector.</p>
-                <div class="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto">
-                    <div class="p-6 bg-[#F8F7F4] rounded-lg">
-                        <dt class="text-sm font-semibold leading-6 text-gray-600">The Demographic Wave</dt>
-                        <dd class="order-first text-3xl font-semibold tracking-tight text-[#5A8F7B]">>130%</dd>
-                        <p class="text-xs text-gray-500 mt-1">Projected growth of 85+ population by 2040.</p>
+        <!-- Hero Section -->
+        <section class="py-20 md:py-28 bg-white">
+            <div class="container mx-auto text-center px-4 sm:px-6 lg:px-8">
+                <h2 class="text-4xl md:text-6xl font-extrabold tracking-tight">
+                    The California RCFE <span class="text-[#E07A5F]">"Buy-and-Build"</span> Opportunity
+                </h2>
+                <p class="mt-4 text-lg text-gray-500">Prepared for Josh Javier and Tina Dominguez</p>
+                <p class="mt-6 max-w-3xl mx-auto text-lg md:text-xl text-gray-600">
+                    An interactive analysis of the California Residential Care Facility for the Elderly market, revealing a compelling investment thesis anchored by powerful demographic tailwinds, market fragmentation, and clear paths to value creation through strategic consolidation.
+                </p>
+                <div class="mt-8">
+                    <a href="#opportunity" class="btn-primary font-bold py-3 px-8 rounded-full inline-block">Explore the Thesis</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Opportunity Section -->
+        <section id="opportunity" class="py-20 md:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h3 class="section-title">The Core Opportunity: Why RCFE, Why Now?</h3>
+                    <p class="mt-4 section-subtitle mx-auto">
+                        This section explores the fundamental drivers making the California RCFE industry attractive. It combines a massive, non-cyclical demand base with a fragmented market structure, creating the perfect environment for a strategic roll-up.
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 text-center">
+                    <div class="stat-card p-6 rounded-lg">
+                        <div class="text-5xl font-extrabold text-[#E07A5F]" id="market-size-stat">0</div>
+                        <p class="mt-2 text-lg font-semibold">U.S. Market by 2030</p>
+                        <p class="text-gray-500">Fueled by a 5.53% CAGR, the national market provides a stable backdrop for growth.</p>
                     </div>
-                    <div class="p-6 bg-[#F8F7F4] rounded-lg">
-                        <dt class="text-sm font-semibold leading-6 text-gray-600">Fragmented Market</dt>
-                        <dd class="order-first text-3xl font-semibold tracking-tight text-[#5A8F7B]">~80%</dd>
-                        <p class="text-xs text-gray-500 mt-1">Of RCFEs are small (≤15 beds), yet serve only ~19% of residents.</p>
+                    <div class="stat-card p-6 rounded-lg">
+                        <div class="text-5xl font-extrabold text-[#E07A5F]" id="facilities-stat">0</div>
+                        <p class="mt-2 text-lg font-semibold">Licensed CA Facilities</p>
+                        <p class="text-gray-500">A vast and fragmented landscape serving over 210,000 residents daily.</p>
                     </div>
-                    <div class="p-6 bg-[#F8F7F4] rounded-lg">
-                        <dt class="text-sm font-semibold leading-6 text-gray-600">The Funding Gap</dt>
-                        <dd class="order-first text-3xl font-semibold tracking-tight text-[#5A8F7B]">$1,420</dd>
-                        <p class="text-xs text-gray-500 mt-1">Monthly SSI/SSP rate for care, far below private pay averages.</p>
+                    <div class="stat-card p-6 rounded-lg">
+                        <div class="text-5xl font-extrabold text-[#E07A5F]" id="seniors-stat">0</div>
+                        <p class="mt-2 text-lg font-semibold">CA Seniors (85+) by 2050</p>
+                        <p class="text-gray-500">The core customer base is set to more than triple, guaranteeing long-term demand.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div class="text-left">
+                        <h4 class="text-3xl font-bold tracking-tight mb-4">The Fragmentation Thesis</h4>
+                        <p class="text-gray-600 mb-4">
+                            The California RCFE market has a unique bimodal structure. An overwhelming majority of facilities are small, independently-run "mom-and-pop" operations. While they make up 81% of all licensed RCFEs, they only serve 19% of the total resident population.
+                        </p>
+                        <p class="text-gray-600 mb-4">
+                            Conversely, the 18% of facilities that are larger, more professionalized operations serve a commanding 81% of residents. This disparity proves that the scaled-up model is dominant and economically superior.
+                        </p>
+                        <p class="font-semibold text-[#E07A5F]">
+                            This structural inefficiency is the cornerstone of the buy-and-build strategy: acquire small, under-managed assets and integrate them into a professional platform to unlock significant value.
+                        </p>
+                    </div>
+                    <div>
+                        <div class="chart-container">
+                            <canvas id="fragmentationChart"></canvas>
+                        </div>
+                        <p class="text-center text-sm text-gray-500 mt-2">Hover over the chart to see details.</p>
                     </div>
                 </div>
             </div>
         </section>
         
-        <section id="demand" class="py-20 sm:py-24">
+        <!-- Market Dynamics Section -->
+        <section id="market-dynamics" class="py-20 md:py-24 bg-white">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="max-w-3xl mx-auto text-center">
-                    <h2 class="text-3xl font-bold tracking-tight text-[#3B5F52] sm:text-4xl">The Demand Tsunami</h2>
-                    <p class="mt-4 text-lg text-gray-600">The single most powerful force shaping the RCFE industry is the exponential growth of California's oldest population cohorts. Driven by aging Baby Boomers and increased longevity, the number of potential residents who require care is set to surge, creating a massive and sustained demand for RCFE services.</p>
+                <div class="text-center mb-16">
+                    <h3 class="section-title">Market Dynamics: The Five Forces</h3>
+                    <p class="mt-4 section-subtitle mx-auto">
+                        The RCFE industry is shaped by a unique set of competitive pressures. This interactive diagram, based on Porter's Five Forces framework, explains the key dynamics. Click on each force to understand its impact on profitability and strategy.
+                    </p>
                 </div>
-                <div class="mt-12">
-                    <div class="chart-container">
-                        <canvas id="populationChart"></canvas>
+
+                <div class="relative max-w-4xl mx-auto">
+                    <div class="grid grid-cols-3 gap-4 justify-items-center mb-4">
+                       <button class="force-button p-4 rounded-lg w-full max-w-xs text-center" data-force="entrants">
+                            <span class="text-4xl">🛡️</span>
+                            <p class="font-bold mt-2">Threat of New Entrants</p>
+                        </button>
+                        <button class="force-button p-4 rounded-lg w-full max-w-xs text-center" data-force="suppliers">
+                            <span class="text-4xl">🧑‍⚕️</span>
+                            <p class="font-bold mt-2">Bargaining Power of Suppliers</p>
+                        </button>
+                         <button class="force-button p-4 rounded-lg w-full max-w-xs text-center" data-force="buyers">
+                            <span class="text-4xl">👨‍👩‍👧‍👦</span>
+                            <p class="font-bold mt-2">Bargaining Power of Buyers</p>
+                        </button>
+                    </div>
+                     <div class="grid grid-cols-2 gap-4 justify-items-center">
+                        <button class="force-button p-4 rounded-lg w-full max-w-xs text-center" data-force="substitutes">
+                            <span class="text-4xl">🏠</span>
+                            <p class="font-bold mt-2">Threat of Substitutes</p>
+                        </button>
+                        <button class="force-button p-4 rounded-lg w-full max-w-xs text-center" data-force="rivalry">
+                            <span class="text-4xl">⚔️</span>
+                            <p class="font-bold mt-2">Intensity of Rivalry</p>
+                        </button>
                     </div>
                 </div>
-                 <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                    <div class="bg-white p-6 rounded-lg shadow-sm">
-                        <h3 class="font-semibold text-lg text-[#3B5F52]">Increasing Diversity</h3>
-                        <p class="mt-2 text-gray-600">Growth is fastest among Latino and Asian seniors. By 2040, no single ethnic group will be a majority among those 65+. This creates a strong need for culturally and linguistically competent care, which can be a competitive advantage for facilities that adapt.</p>
+
+                <div id="force-details" class="mt-12 min-h-[200px] bg-gray-50 p-8 rounded-lg border border-gray-200 max-w-4xl mx-auto transition-opacity duration-500">
+                    <div id="entrants-content" class="force-content hidden">
+                        <h4 class="font-bold text-2xl flex items-center"><span class="text-xl mr-3">🛡️</span>Threat of New Entrants: <span class="ml-2 px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">LOW</span></h4>
+                        <p class="mt-4 text-gray-600">High barriers create a protective "moat" for existing operators. Entry is deterred by a complex web of regulations (Title 22), a lengthy and costly licensing process with the CDSS, and substantial capital required for California real estate. This protects market share and pricing power.</p>
                     </div>
-                    <div class="bg-white p-6 rounded-lg shadow-sm">
-                        <h3 class="font-semibold text-lg text-[#3B5F52]">Regional Variation</h3>
-                        <p class="mt-2 text-gray-600">Demand growth is not uniform. Areas like the Inland Empire and Sacramento are projected to see much higher increases in need compared to Los Angeles. Market analysis must be hyper-local to identify true opportunities.</p>
+                     <div id="suppliers-content" class="force-content hidden">
+                        <h4 class="font-bold text-2xl flex items-center"><span class="text-xl mr-3">🧑‍⚕️</span>Bargaining Power of Suppliers: <span class="ml-2 px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">HIGH</span></h4>
+                        <p class="mt-4 text-gray-600">Labor is the dominant supplier and the industry's primary challenge. A severe, statewide caregiver shortage, high turnover rates, and rising minimum wage laws give qualified caregivers significant leverage, driving up operating costs and compressing margins. A successful platform *must* solve for labor.</p>
+                    </div>
+                     <div id="buyers-content" class="force-content hidden">
+                        <h4 class="font-bold text-2xl flex items-center"><span class="text-xl mr-3">👨‍👩‍👧‍👦</span>Bargaining Power of Buyers: <span class="ml-2 px-3 py-1 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">MEDIUM</span></h4>
+                        <p class="mt-4 text-gray-600">Buyer power is mitigated by extremely high emotional and logistical switching costs, which creates sticky, recurring revenue. However, price sensitivity exists, especially with increased online transparency for facility comparisons. Power is strongest in the private-pay segment for high-quality care.</p>
+                    </div>
+                     <div id="substitutes-content" class="force-content hidden">
+                        <h4 class="font-bold text-2xl flex items-center"><span class="text-xl mr-3">🏠</span>Threat of Substitutes: <span class="ml-2 px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">HIGH</span></h4>
+                        <p class="mt-4 text-gray-600">The strongest substitute is in-home care, driven by a strong cultural preference to "age in place." A vast industry of home care agencies and independent caregivers competes directly with RCFEs. This threat must be countered by highlighting the value of 24/7 supervision, socialization, and specialized services.</p>
+                    </div>
+                     <div id="rivalry-content" class="force-content hidden">
+                        <h4 class="font-bold text-2xl flex items-center"><span class="text-xl mr-3">⚔️</span>Intensity of Rivalry: <span class="ml-2 px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">HIGH</span></h4>
+                        <p class="mt-4 text-gray-600">With over 7,800 licensed facilities, the market is intensely competitive, especially at the local level. Rivalry is based on reputation, price, location, and the ability to offer differentiated, high-margin services like memory care. This intense competition is what creates the opportunity to acquire and professionalize smaller, struggling rivals.</p>
+                    </div>
+                    <div id="force-placeholder" class="text-center text-gray-500">
+                        <p>Select a force above to see its analysis.</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section id="market" class="bg-white py-20 sm:py-24">
+        <!-- SWOT Analysis Section -->
+        <section id="swot-analysis" class="py-20 md:py-24">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="max-w-3xl mx-auto text-center">
-                    <h2 class="text-3xl font-bold tracking-tight text-[#3B5F52] sm:text-4xl">The Market Landscape</h2>
-                    <p class="mt-4 text-lg text-gray-600">While small "board and care" homes dominate the RCFE landscape by sheer number of facilities, the majority of residents live in large, corporate-owned communities. This creates a highly fragmented market where small operators compete in a specialized niche.</p>
+                <div class="text-center mb-16">
+                    <h3 class="section-title">SWOT Analysis: Industry vs. Market</h3>
+                    <p class="mt-4 section-subtitle mx-auto">
+                        This section provides a strategic overview of the industry's Strengths, Weaknesses, Opportunities, and Threats. Use the tabs to compare the general U.S. industry landscape with the specific dynamics of the California market.
+                    </p>
                 </div>
-                <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="text-center p-4">
-                        <h3 class="font-semibold text-xl text-gray-700 mb-4">Facility Distribution</h3>
-                        <div class="chart-container !h-72 sm:!h-80">
-                            <canvas id="facilityDistributionChart"></canvas>
-                        </div>
-                        <p class="mt-4 text-gray-600 text-sm">Small facilities (≤15 beds) make up the vast majority of licensed RCFEs.</p>
+                <div>
+                    <div class="flex justify-center mb-8 border-b border-gray-200">
+                        <button class="tab py-3 px-6 -mb-px border-b-2 border-transparent font-semibold text-lg" data-tab="swot-us">U.S. RCFE Industry</button>
+                        <button class="tab py-3 px-6 -mb-px border-b-2 border-transparent font-semibold text-lg" data-tab="swot-ca">California Market</button>
                     </div>
-                    <div class="text-center p-4">
-                        <h3 class="font-semibold text-xl text-gray-700 mb-4">Resident Distribution</h3>
-                        <div class="chart-container !h-72 sm:!h-80">
-                            <canvas id="residentDistributionChart"></canvas>
-                        </div>
-                        <p class="mt-4 text-gray-600 text-sm">Large facilities (16+ beds) care for the overwhelming majority of residents.</p>
-                    </div>
-                </div>
-                 <div class="mt-16 max-w-5xl mx-auto">
-                    <h3 class="text-2xl font-bold text-center text-[#3B5F52] mb-8">Competitive Forces</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div class="p-6 bg-gray-50 rounded-lg">
-                             <h4 class="font-semibold text-lg text-[#5A8F7B]">The 6-Bed Niche</h4>
-                             <p class="mt-2 text-gray-600 text-sm">Small RCFEs compete by offering a homelike setting, personalized care, and potential specialization (e.g., dementia, cultural focus). Their key regulatory advantage is being zoned as a residential property, simplifying setup.</p>
-                        </div>
-                         <div class="p-6 bg-gray-50 rounded-lg">
-                             <h4 class="font-semibold text-lg text-[#5A8F7B]">Large Chains</h4>
-                             <p class="mt-2 text-gray-600 text-sm">Larger assisted living corporations compete on scale, offering broader amenities and larger marketing budgets. They often feel more institutional, creating a clear differentiator for the 6-bed model.</p>
-                        </div>
-                         <div class="p-6 bg-gray-50 rounded-lg">
-                             <h4 class="font-semibold text-lg text-[#5A8F7B]">Home Care Agencies</h4>
-                             <p class="mt-2 text-gray-600 text-sm">A primary competitor, home care allows seniors to age in their own homes. This is a strong preference for many, often delaying the move to a facility-based setting like an RCFE.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="operations" class="py-20 sm:py-24">
-            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="max-w-3xl mx-auto text-center">
-                    <h2 class="text-3xl font-bold tracking-tight text-[#3B5F52] sm:text-4xl">The Operator's Gauntlet</h2>
-                    <p class="mt-4 text-lg text-gray-600">Running a 6-bed RCFE means navigating a daunting series of regulatory, financial, and operational challenges. From a complex licensing path to a precarious economic model, success requires exceptional discipline and expertise. Explore the key operational areas below.</p>
-                </div>
-                <div class="mt-12 max-w-5xl mx-auto">
-                    <div class="mb-4 border-b border-gray-200">
-                        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="op-tabs" role="tablist">
-                            <li class="mr-2" role="presentation">
-                                <button class="tab-button inline-block p-4 border-b-2 rounded-t-lg active" id="licensing-tab" data-tabs-target="#licensing" type="button" role="tab">Licensing Path</button>
-                            </li>
-                            <li class="mr-2" role="presentation">
-                                <button class="tab-button inline-block p-4 border-b-2 rounded-t-lg" id="economics-tab" data-tabs-target="#economics" type="button" role="tab">Economics</button>
-                            </li>
-                            <li role="presentation">
-                                <button class="tab-button inline-block p-4 border-b-2 rounded-t-lg" id="challenges-tab" data-tabs-target="#challenges" type="button" role="tab">Headwinds</button>
-                            </li>
-                        </ul>
-                    </div>
-                    <div id="op-tab-content" class="bg-white rounded-lg shadow-sm p-6 sm:p-8">
-                        <div class="duration-300 ease-in-out" id="licensing" role="tabpanel">
-                             <h3 class="text-2xl font-bold text-[#3B5F52]">The Path to Licensure</h3>
-                             <p class="text-gray-600 mt-2 mb-8">Obtaining an RCFE license from the Community Care Licensing Division (CCLD) is a lengthy, multi-step process requiring meticulous documentation and preparation. The journey typically takes 4-5 months or more.</p>
-                            <div class="relative">
-                                <div class="licensing-step">
-                                    <div class="licensing-step-circle">1</div>
-                                    <h4 class="font-bold text-lg text-gray-800">Orientation & Application</h4>
-                                    <p class="text-gray-600">Complete the mandatory CDSS online orientation and submit a detailed application covering ownership, facility plans, services, and finances.</p>
+                    <div class="max-w-6xl mx-auto">
+                        <div id="swot-us-content" class="tab-content hidden">
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div class="swot-card border-green-500 p-6 rounded-lg shadow-sm">
+                                    <h4 class="font-bold text-xl mb-2 text-green-600">Strengths</h4>
+                                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                        <li>Recession-resilient, needs-based demand</li>
+                                        <li>Predictable, recurring revenue from long stays</li>
+                                        <li>High customer switching costs reduce churn</li>
+                                        <li>Strong pricing power in private-pay segment</li>
+                                    </ul>
                                 </div>
-                                <div class="licensing-step">
-                                    <div class="licensing-step-circle">2</div>
-                                    <h4 class="font-bold text-lg text-gray-800">Documentation & Fees</h4>
-                                    <p class="text-gray-600">Provide proof of property control, a surety bond (if handling resident funds), application fees, and proof of 3 months' operating capital.</p>
+                                <div class="swot-card border-red-500 p-6 rounded-lg shadow-sm">
+                                    <h4 class="font-bold text-xl mb-2 text-red-600">Weaknesses</h4>
+                                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                        <li>High operational complexity (care, hospitality, real estate)</li>
+                                        <li>Intensely labor-dependent, vulnerable to workforce issues</li>
+                                        <li>Risk of negative public perception from care incidents</li>
+                                        <li>Historically slow technology adoption leads to inefficiency</li>
+                                    </ul>
                                 </div>
-                                <div class="licensing-step">
-                                    <div class="licensing-step-circle">3</div>
-                                    <h4 class="font-bold text-lg text-gray-800">Clearances</h4>
-                                    <p class="text-gray-600">All key personnel must pass criminal background checks. The facility must obtain a fire safety clearance from the local fire marshal.</p>
+                                <div class="swot-card border-blue-500 p-6 rounded-lg shadow-sm">
+                                    <h4 class="font-bold text-xl mb-2 text-blue-600">Opportunities</h4>
+                                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                        <li>"Silver Tsunami" guarantees long-term market growth</li>
+                                        <li>Growing demand for high-margin specialized services (memory care)</li>
+                                        <li>Technology integration can drive efficiency and quality</li>
+                                        <li>Consolidation of fragmented markets ("buy-and-build")</li>
+                                    </ul>
                                 </div>
-                                <div class="licensing-step">
-                                    <div class="licensing-step-circle">4</div>
-                                    <h4 class="font-bold text-lg text-gray-800">Inspections & Approval</h4>
-                                    <p class="text-gray-600">Participate in an interview with a Licensing Program Analyst (LPA), followed by a comprehensive on-site pre-licensing inspection to ensure the facility is safe and ready for residents.</p>
+                                <div class="swot-card border-yellow-500 p-6 rounded-lg shadow-sm">
+                                    <h4 class="font-bold text-xl mb-2 text-yellow-600">Threats</h4>
+                                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                        <li>Nationwide structural shortage of qualified caregivers</li>
+                                        <li>Persistent upward pressure on operating costs (wages, insurance)</li>
+                                        <li>Technologically advanced in-home care as a strong substitute</li>
+                                        <li>Potential for increased federal/state regulatory scrutiny</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
-                        <div class="hidden duration-300 ease-in-out" id="economics" role="tabpanel">
-                             <h3 class="text-2xl font-bold text-[#3B5F52]">The Economic Blueprint</h3>
-                             <p class="text-gray-600 mt-2 mb-8">Profitability is a constant balancing act between managing high operational costs and navigating disparate revenue streams. Staffing is the single largest expense, while reliance on public funding sources creates significant financial pressure.</p>
-                             <div class="chart-container">
-                                <canvas id="revenueChart"></canvas>
-                             </div>
-                             <p class="text-center text-xs text-gray-500 mt-2">Note: Chart shows monthly rates. Private pay is an estimated average range. SSI/SSP and ALW rates are for 2025.</p>
-                             <div class="mt-8">
-                                <h4 class="text-lg font-semibold text-gray-800">Key Operating Costs</h4>
-                                <ul class="mt-2 list-disc list-inside text-gray-600 space-y-1">
-                                    <li><span class="font-bold">Staffing:</span> The #1 expense, including wages, payroll taxes, and insurance.</li>
-                                    <li><span class="font-bold">Property:</span> Mortgage or rent, property taxes. Highly variable by location.</li>
-                                    <li><span class="font-bold">Insurance:</span> Mandatory liability ($1M/$3M), property, and workers' comp.</li>
-                                    <li><span class="font-bold">Utilities, Food & Supplies:</span> Daily operational needs for residents.</li>
-                                </ul>
-                             </div>
-                        </div>
-                        <div class="hidden duration-300 ease-in-out" id="challenges" role="tabpanel">
-                             <h3 class="text-2xl font-bold text-[#3B5F52]">Major Headwinds & Barriers</h3>
-                             <p class="text-gray-600 mt-2 mb-8">Despite strong demand, significant operational hurdles threaten the viability of many 6-bed RCFEs and create high barriers for new entrants.</p>
-                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="p-4 bg-red-50 rounded-lg border border-red-200">
-                                    <h4 class="font-bold text-red-800">The Staffing Crisis</h4>
-                                    <p class="text-sm text-red-700 mt-1">Chronic shortages of qualified caregivers, high turnover, burnout, and wage pressure make recruiting and retaining staff the most acute challenge, directly impacting care quality and costs.</p>
+                        <div id="swot-ca-content" class="tab-content hidden">
+                             <div class="grid md:grid-cols-2 gap-6">
+                                <div class="swot-card border-green-500 p-6 rounded-lg shadow-sm">
+                                    <h4 class="font-bold text-xl mb-2 text-green-600">Strengths</h4>
+                                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                        <li>Largest, most valuable single-state market in the U.S.</li>
+                                        <li>Exceptional pricing power due to high wealth concentration</li>
+                                        <li>Extreme regulatory complexity creates a protective "moat"</li>
+                                        <li>Established consolidation trend and liquid M&A market</li>
+                                    </ul>
                                 </div>
-                                <div class="p-4 bg-red-50 rounded-lg border border-red-200">
-                                    <h4 class="font-bold text-red-800">Rising Operational Costs</h4>
-                                    <p class="text-sm text-red-700 mt-1">Beyond payroll, costs for insurance, utilities, food, and compliance are continually escalating, putting immense pressure on thin profit margins.</p>
+                                <div class="swot-card border-red-500 p-6 rounded-lg shadow-sm">
+                                    <h4 class="font-bold text-xl mb-2 text-red-600">Weaknesses</h4>
+                                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                        <li>Extreme operating costs (highest wages and real estate)</li>
+                                        <li>Highest and most complex regulatory burden (Title 22)</li>
+                                        <li>Intense local competition for both residents and staff</li>
+                                        <li>Inadequate government reimbursement rates (ALW)</li>
+                                    </ul>
                                 </div>
-                                <div class="p-4 bg-red-50 rounded-lg border border-red-200">
-                                    <h4 class="font-bold text-red-800">The Affordability Crisis</h4>
-                                    <p class="text-sm text-red-700 mt-1">Private pay rates are unaffordable for many, while public SSI/SSP rates are widely seen as insufficient to cover the actual cost of providing quality, compliant care.</p>
+                                <div class="swot-card border-blue-500 p-6 rounded-lg shadow-sm">
+                                    <h4 class="font-bold text-xl mb-2 text-blue-600">Opportunities</h4>
+                                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                        <li>Target-rich environment due to extreme market fragmentation</li>
+                                        <li>Develop culturally-specific services for diverse populations</li>
+                                        <li>State support for expanding the ALW program</li>
+                                        <li>Capture "professionalization premium" on exit</li>
+                                    </ul>
                                 </div>
-                                <div class="p-4 bg-red-50 rounded-lg border border-red-200">
-                                    <h4 class="font-bold text-red-800">Regulatory Burden</h4>
-                                    <p class="text-sm text-red-700 mt-1">Navigating the complex and ever-changing Title 22 regulations requires significant administrative effort and expertise, creating a major barrier to entry and ongoing operational challenge.</p>
+                                <div class="swot-card border-yellow-500 p-6 rounded-lg shadow-sm">
+                                    <h4 class="font-bold text-xl mb-2 text-yellow-600">Threats</h4>
+                                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                        <li>Political risk from the widening affordability crisis</li>
+                                        <li>Higher-than-average litigation risk (residents, employees)</li>
+                                        <li>Exposure to natural disasters (wildfires, earthquakes)</li>
+                                        <li>Complex and evolving state-specific labor laws</li>
+                                    </ul>
                                 </div>
-                             </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section id="future" class="bg-white py-20 sm:py-24">
+        <!-- Value Creation Section -->
+        <section id="value-creation" class="py-20 md:py-24 bg-white">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="max-w-3xl mx-auto text-center">
-                    <h2 class="text-3xl font-bold tracking-tight text-[#3B5F52] sm:text-4xl">The Path Forward</h2>
-                    <p class="mt-4 text-lg text-gray-600">The future of the 6-bed RCFE industry will be defined by the ability of operators to navigate severe challenges while capitalizing on emerging opportunities. Success will demand operational excellence, strategic adaptation, and innovative solutions.</p>
+                 <div class="text-center mb-16">
+                    <h3 class="section-title">The Value Creation Playbook</h3>
+                    <p class="mt-4 section-subtitle mx-auto">
+                        Value is created by transforming a collection of small, inefficient businesses into a single, professional, and profitable enterprise. This is achieved through specific operational improvements and capturing the financial benefit of scale, known as multiple expansion.
+                    </p>
                 </div>
-                <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                     <div class="p-6 bg-green-50 rounded-lg border border-green-200">
-                         <h4 class="font-bold text-green-800">Technology Integration</h4>
-                         <p class="text-sm text-green-700 mt-1">Using tools like electronic health records, remote monitoring, and operational software can improve care coordination and boost efficiency.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <div class="chart-container">
+                            <canvas id="multipleExpansionChart"></canvas>
+                        </div>
+                        <p class="text-center text-sm text-gray-500 mt-2">Median EBITDA multiples expand significantly with scale.</p>
                     </div>
-                     <div class="p-6 bg-green-50 rounded-lg border border-green-200">
-                         <h4 class="font-bold text-green-800">Niche Specialization</h4>
-                         <p class="text-sm text-green-700 mt-1">Developing deep expertise in areas like advanced memory care or culturally-specific services for diverse populations is a key differentiator.</p>
-                    </div>
-                     <div class="p-6 bg-green-50 rounded-lg border border-green-200">
-                         <h4 class="font-bold text-green-800">Innovative Workforce Solutions</h4>
-                         <p class="text-sm text-green-700 mt-1">Pioneering new strategies for staff recruitment, retention (e.g., career ladders), and training is critical to solving the staffing bottleneck.</p>
+                     <div class="text-left">
+                        <h4 class="text-3xl font-bold tracking-tight mb-4">Unlocking Value Through Scale</h4>
+                        <p class="text-gray-600 mb-4">
+                            The financial engine of the "buy-and-build" strategy is **multiple expansion** (or multiple arbitrage). Smaller businesses are acquired at lower valuation multiples due to their higher perceived risk and lack of sophistication.
+                        </p>
+                         <p class="text-gray-600 mb-4">
+                            By integrating these acquisitions onto a professional platform, the combined entity becomes larger, more profitable, and systemically de-risked. This allows the consolidated enterprise to be sold at a much higher EBITDA multiple, generating significant returns for the investor.
+                        </p>
+                        <ul class="space-y-3">
+                            <li class="flex items-start"><span class="text-green-500 mr-2 mt-1">✓</span><span><strong class="text-gray-800">Professionalize Management:</strong> Implement rigorous financial controls and data-driven marketing.</span></li>
+                            <li class="flex items-start"><span class="text-green-500 mr-2 mt-1">✓</span><span><strong class="text-gray-800">Centralize Functions:</strong> Consolidate HR, billing, and procurement to reduce overhead.</span></li>
+                            <li class="flex items-start"><span class="text-green-500 mr-2 mt-1">✓</span><span><strong class="text-gray-800">Implement Technology:</strong> Deploy software for efficiency in scheduling, care records (eMAR), and compliance.</span></li>
+                             <li class="flex items-start"><span class="text-green-500 mr-2 mt-1">✓</span><span><strong class="text-gray-800">Optimize Pricing:</strong> Use tiered pricing and add high-margin ancillary services like memory care.</span></li>
+                        </ul>
                     </div>
                 </div>
-                <div class="mt-16 max-w-4xl mx-auto bg-[#F8F7F4] p-8 rounded-lg">
-                    <h3 class="text-2xl font-bold text-[#3B5F52] text-center">Conclusion: A Market at a Crossroads</h3>
-                    <p class="mt-4 text-gray-700">The 6-bed RCFE sector is characterized by immense opportunity fueled by demographic destiny, yet constrained by profound challenges. The staggering growth of California's senior population ensures demand, but this potential is tempered by a severe staffing crisis, rising costs, and an affordability gap. Future growth will be uneven, favoring operators who achieve exceptional efficiency, innovate, and differentiate. For facilities serving low-income residents, sustainability is precarious without significant policy intervention to increase public reimbursement rates and support this vital part of the senior care continuum.</p>
+            </div>
+        </section>
+
+        <!-- Risks & Mitigation Section -->
+        <section id="risks" class="py-20 md:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h3 class="section-title">Key Risks & Mitigation Strategies</h3>
+                    <p class="mt-4 section-subtitle mx-auto">
+                       Every investment carries risk. The RCFE industry's primary challenges are operational and macroeconomic. This section outlines the most significant risks and presents the strategic levers a platform can pull to mitigate them effectively.
+                    </p>
+                </div>
+                <div>
+                    <div class="flex justify-center mb-8 border-b border-gray-200">
+                        <button class="tab py-3 px-6 -mb-px border-b-2 border-transparent font-semibold text-lg" data-tab="risk-labor">The Labor Crisis</button>
+                        <button class="tab py-3 px-6 -mb-px border-b-2 border-transparent font-semibold text-lg" data-tab="risk-regulation">Regulatory Complexity</button>
+                        <button class="tab py-3 px-6 -mb-px border-b-2 border-transparent font-semibold text-lg" data-tab="risk-affordability">Affordability Paradox</button>
+                    </div>
+                    <div class="max-w-4xl mx-auto">
+                        <div id="risk-labor-content" class="tab-content hidden">
+                            <div class="grid md:grid-cols-2 gap-8">
+                                <div>
+                                    <h4 class="font-bold text-xl mb-2 text-red-600">Risk</h4>
+                                    <p>The severe statewide caregiver shortage, combined with high turnover and wage inflation, is the single greatest threat to scalability and profitability. Growth is impossible without a stable workforce.</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-xl mb-2 text-green-600">Mitigation Strategy</h4>
+                                    <p>Become a "destination employer." This requires a multi-pronged approach: offer above-market compensation, create clear career/training paths, and deploy technology (e.g., smart scheduling, workflow automation) to reduce administrative burden and prevent burnout.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="risk-regulation-content" class="tab-content hidden">
+                           <div class="grid md:grid-cols-2 gap-8">
+                                <div>
+                                    <h4 class="font-bold text-xl mb-2 text-red-600">Risk</h4>
+                                    <p>Navigating the dense Title 22 regulations is a constant operational burden. A major compliance failure can result in fines, reputational damage, and even license revocation, destroying asset value.</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-xl mb-2 text-green-600">Mitigation Strategy</h4>
+                                    <p>Invest in a centralized, expert-led compliance function at the platform level. Utilize compliance management software to automate tracking and reporting. This transforms the regulatory burden from a risk into a defensible competitive advantage over smaller, less-resourced operators.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="risk-affordability-content" class="tab-content hidden">
+                            <div class="grid md:grid-cols-2 gap-8">
+                                <div>
+                                    <h4 class="font-bold text-xl mb-2 text-red-600">Risk</h4>
+                                    <p>Strong pricing power has created a massive affordability gap for middle-income seniors. The median annual cost ($88k+) far exceeds average retirement income, which could attract future political blowback or price controls.</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-xl mb-2 text-green-600">Mitigation Strategy</h4>
+                                    <p>Diversify payer risk. While focusing on the high-end private-pay market, a forward-thinking platform should explore developing a more efficient, tech-driven model to serve the middle market or selectively participate in the state's Assisted Living Waiver (ALW) program to build goodwill and create a more resilient business model.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Exit Strategy Section -->
+        <section id="exit-strategy" class="py-20 md:py-24 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                 <div class="text-center mb-16">
+                    <h3 class="section-title">A Clear & Liquid Exit Environment</h3>
+                    <p class="mt-4 section-subtitle mx-auto">
+                        A successful investment requires a viable exit. The senior living M&A market is robust, active, and well-capitalized, offering multiple clear pathways to monetization for a scaled and professionalized RCFE platform.
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="stat-card p-8 rounded-lg text-center">
+                        <h4 class="font-bold text-xl mb-2">Strategic Acquirers</h4>
+                        <p class="text-4xl font-extrabold text-[#E07A5F]">HIGH</p>
+                        <p class="mt-2 text-gray-500">Large national operators (Atria, Brookdale, etc.) are constantly acquiring to gain market share. A scaled California platform is a prime target.</p>
+                    </div>
+                    <div class="stat-card p-8 rounded-lg text-center">
+                        <h4 class="font-bold text-xl mb-2">Secondary Buyouts</h4>
+                        <p class="text-4xl font-extrabold text-[#E07A5F]">HIGH</p>
+                        <p class="mt-2 text-gray-500">The sector is a PE favorite. Selling the platform to a larger financial sponsor is a common and highly viable exit path.</p>
+                    </div>
+                     <div class="stat-card p-8 rounded-lg text-center md:col-span-2 lg:col-span-1">
+                        <h4 class="font-bold text-xl mb-2">IPO Market</h4>
+                        <p class="text-4xl font-extrabold text-yellow-500">LOW</p>
+                        <p class="mt-2 text-gray-500">While not impossible for a massive platform, an IPO is a less common and more complex exit than a strategic sale or secondary buyout.</p>
+                    </div>
+                </div>
+                 <div class="mt-16 max-w-4xl mx-auto">
+                     <h4 class="text-center text-2xl font-bold mb-6">Senior Living M&A Transaction Volume is Healthy</h4>
+                     <div class="chart-container" style="max-width: 800px; height: 350px;">
+                        <canvas id="maTransactionChart"></canvas>
+                    </div>
+                     <p class="text-center text-sm text-gray-500 mt-2">Publicly announced transactions show a rebound and a maturing market.</p>
                 </div>
             </div>
         </section>
     </main>
 
-    <footer class="bg-[#3B5F52] text-white">
-        <div class="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm">
-            <p>&copy; 2024 Interactive RCFE Analysis. All data derived from the source report for illustrative purposes.</p>
+    <footer class="bg-gray-800 text-white mt-20">
+        <div class="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center">
+            <p>This interactive analysis is for illustrative purposes.</p>
+            <p class="text-sm text-gray-400 mt-2">Not Investment Advice.</p>
         </div>
     </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const currentValue = Math.floor(progress * (end - start) + start);
+                
+                if (obj.id === 'market-size-stat') {
+                    obj.innerHTML = `$${(currentValue / 1000).toFixed(1)}B`;
+                } else if (obj.id === 'facilities-stat') {
+                    obj.innerHTML = `${Math.floor(currentValue / 100) * 100}+`;
+                } else if (obj.id === 'seniors-stat') {
+                     obj.innerHTML = `${(currentValue / 1000000).toFixed(2)}M`;
+                } else {
+                    obj.innerHTML = currentValue;
+                }
 
-            const RCFE_DATA = {
-                population: {
-                    labels: ['2025', '2030', '2040', '2050'],
-                    datasets: [
-                        {
-                            label: 'Age 75-84',
-                            data: [1945477, 2464496, 3456718, 3726659],
-                            borderColor: '#5A8F7B',
-                            backgroundColor: 'rgba(90, 143, 123, 0.2)',
-                            fill: true,
-                            tension: 0.3,
-                        },
-                        {
-                            label: 'Age 85+',
-                            data: [849480, 978691, 1609945, 2245691],
-                            borderColor: '#C87941',
-                            backgroundColor: 'rgba(200, 121, 65, 0.2)',
-                            fill: true,
-                            tension: 0.3,
-                        }
-                    ]
-                },
-                market: {
-                    facilities: {
-                        labels: ['Small Facilities (≤15 beds)', 'Large Facilities (16+ beds)'],
-                        data: [81, 19],
-                    },
-                    residents: {
-                        labels: ['In Small Facilities (≤15 beds)', 'In Large Facilities (16+ beds)'],
-                        data: [19, 81],
-                    }
-                },
-                revenue: {
-                    labels: ['SSI/SSP', 'ALW Tier 1', 'ALW Tier 2', 'ALW Tier 3', 'ALW Tier 4', 'ALW Tier 5', 'Private Pay Avg.'],
-                    data: [1420.07, 2815.8, 3364.8, 3913.2, 5284.5, 7949.1, 5250],
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
                 }
             };
-            
-            const chartColors = ['#5A8F7B', '#C87941'];
+            window.requestAnimationFrame(step);
+        }
 
-            function initPopulationChart() {
-                const ctx = document.getElementById('populationChart')?.getContext('2d');
-                if (!ctx) return;
+        const statsSection = document.getElementById('opportunity');
+        let statsAnimated = false;
 
-                new Chart(ctx, {
-                    type: 'line',
-                    data: RCFE_DATA.population,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'top' },
-                            title: { display: true, text: 'Projected Growth of California\'s Older Population' },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) { label += ': '; }
-                                        if (context.parsed.y !== null) {
-                                            label += new Intl.NumberFormat('en-US').format(context.parsed.y);
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                ticks: {
-                                    callback: function(value) { return new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value); }
-                                }
-                            }
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !statsAnimated) {
+                    animateValue(document.getElementById('market-size-stat'), 0, 140800, 2000);
+                    animateValue(document.getElementById('facilities-stat'), 0, 7800, 2000);
+                    animateValue(document.getElementById('seniors-stat'), 600000, 2250000, 2000);
+                    statsAnimated = true;
+                    observer.unobserve(statsSection);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        observer.observe(statsSection);
+
+        const createChart = (ctx, config) => {
+            let chartInstance = null;
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        if (!chartInstance) {
+                           chartInstance = new Chart(ctx, config);
                         }
+                        observer.unobserve(entry.target);
                     }
                 });
-            }
+            }, { threshold: 0.5 });
+            observer.observe(ctx.canvas);
+        };
 
-            function initMarketCharts() {
-                const facilityCtx = document.getElementById('facilityDistributionChart')?.getContext('2d');
-                const residentCtx = document.getElementById('residentDistributionChart')?.getContext('2d');
-                if (!facilityCtx || !residentCtx) return;
-
-                const commonOptions = {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '60%',
-                    plugins: { legend: { display: false } }
-                };
-
-                new Chart(facilityCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: RCFE_DATA.market.facilities.labels,
-                        datasets: [{ data: RCFE_DATA.market.facilities.data, backgroundColor: chartColors, hoverOffset: 4 }]
-                    },
-                    options: commonOptions
-                });
-
-                new Chart(residentCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: RCFE_DATA.market.residents.labels,
-                        datasets: [{ data: RCFE_DATA.market.residents.data, backgroundColor: chartColors, hoverOffset: 4 }]
-                    },
-                    options: commonOptions
-                });
-            }
-            
-            function initRevenueChart() {
-                const ctx = document.getElementById('revenueChart')?.getContext('2d');
-                if (!ctx) return;
-                
-                const backgroundColors = [
-                    '#C87941', ...Array(5).fill('#5A8F7B'), '#3B5F52'
-                ].map(color => Chart.helpers.color(color).alpha(0.7).rgbString());
-                
-                const borderColors = [
-                    '#C87941', ...Array(5).fill('#5A8F7B'), '#3B5F52'
-                ];
-
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: RCFE_DATA.revenue.labels,
-                        datasets: [{
-                            label: 'Monthly Rate',
-                            data: RCFE_DATA.revenue.data,
-                            backgroundColor: backgroundColors,
-                            borderColor: borderColors,
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            title: { display: true, text: 'Comparison of Monthly Revenue Streams (2025 Rates)' },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.x);
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                title: { display: true, text: 'Monthly Rate ($)' },
-                                ticks: {
-                                     callback: function(value) { return '$' + new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value); }
-                                }
+        const fragmentationCtx = document.getElementById('fragmentationChart').getContext('2d');
+        createChart(fragmentationCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Small Facilities (<15 beds)', 'Large Facilities (>15 beds)'],
+                datasets: [{
+                    label: 'Facility Type by % of Total Facilities',
+                    data: [81, 19],
+                    backgroundColor: ['#F8F5F2', '#E07A5F'],
+                    borderColor: ['#cccccc', '#d16b50'],
+                    borderWidth: 1,
+                    hoverOffset: 8
+                }, {
+                    label: 'Facility Type by % of Residents Served',
+                    data: [19, 81],
+                    backgroundColor: ['#F8F5F2', '#E07A5F'],
+                    borderColor: ['#cccccc', '#d16b50'],
+                    borderWidth: 1,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed !== null) { label += context.parsed + '%'; }
+                                return label;
                             }
                         }
-                    }
-                });
+                    },
+                    title: { display: true, text: 'Facilities vs. Residents Served', font: { size: 16 } }
+                },
+                cutout: '50%',
             }
-
-            function initTabs() {
-                const tabButtons = document.querySelectorAll('[data-tabs-target]');
-                const tabContents = document.querySelectorAll('[role="tabpanel"]');
-
-                tabButtons.forEach(button => {
-                    button.addEventListener('click', () => {
-                        const targetSelector = button.getAttribute('data-tabs-target');
-                        const targetContent = document.querySelector(targetSelector);
-
-                        tabButtons.forEach(btn => btn.classList.remove('active'));
-                        button.classList.add('active');
-
-                        tabContents.forEach(content => content.classList.add('hidden'));
-                        if(targetContent) targetContent.classList.remove('hidden');
-                    });
-                });
-            }
-
-            initPopulationChart();
-            initMarketCharts();
-            initRevenueChart();
-            initTabs();
         });
+
+        const multipleExpansionCtx = document.getElementById('multipleExpansionChart').getContext('2d');
+        createChart(multipleExpansionCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Small ($0.5-1M)', 'Medium ($1-3M)', 'Large ($3-10M)'],
+                datasets: [{
+                    label: 'Median EBITDA Multiple',
+                    data: [6.5, 7.4, 9.9],
+                    backgroundColor: ['rgba(224, 122, 95, 0.4)', 'rgba(224, 122, 95, 0.7)', 'rgba(224, 122, 95, 1.0)'],
+                    borderColor: 'rgba(224, 122, 95, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'EBITDA Multiple by Facility Scale', font: { size: 16 } }
+                },
+                scales: { x: { beginAtZero: true, title: { display: true, text: 'EBITDA Multiple (x)' } } }
+            }
+        });
+
+        const maTransactionCtx = document.getElementById('maTransactionChart').getContext('2d');
+        createChart(maTransactionCtx, {
+            type: 'bar',
+            data: {
+                labels: ['2021', '2022', '2023', '2024'],
+                datasets: [{
+                    label: 'Publicly Announced Transactions',
+                    data: [480, 558, 610, 703],
+                    backgroundColor: 'rgba(224, 122, 95, 0.7)',
+                    borderColor: 'rgba(224, 122, 95, 1)',
+                    borderWidth: 1
+                }]
+            },
+             options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: false, min: 400, title: { display: true, text: 'Number of Deals' } } }
+            }
+        });
+
+        const forceButtons = document.querySelectorAll('.force-button');
+        const forceContents = document.querySelectorAll('.force-content');
+        const forcePlaceholder = document.getElementById('force-placeholder');
+        
+        forceButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const force = button.dataset.force;
+                forceButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                forceContents.forEach(content => content.classList.add('hidden'));
+                forcePlaceholder.classList.add('hidden');
+                document.getElementById(`${force}-content`).classList.remove('hidden');
+            });
+        });
+        
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetId = tab.dataset.tab;
+                tabs.forEach(t => {
+                     if (t.dataset.tab.startsWith(targetId.split('-')[0])) {
+                        t.classList.remove('active');
+                    }
+                });
+                tab.classList.add('active');
+                
+                tabContents.forEach(content => {
+                    if (content.id.startsWith(targetId.split('-')[0])) {
+                        content.classList.add('hidden');
+                    }
+                });
+                document.getElementById(`${targetId}-content`).classList.remove('hidden');
+            });
+        });
+
+        // Activate defaults
+        document.querySelector('.tab[data-tab="risk-labor"]').click();
+        document.querySelector('.tab[data-tab="swot-us"]').click();
+        forceButtons[0].click();
+
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('section, footer');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 80) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetEl = document.querySelector(this.getAttribute('href'));
+                if (targetEl) {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    });
     </script>
 </body>
 </html>
